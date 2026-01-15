@@ -97,7 +97,13 @@ export async function resetUserPassword(userId: string, newPassword: string) {
 }
 
 export async function deleteUser(userId: string) {
-  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-  if (error) return { success: false, message: error.message }
-  return { success: true, message: 'User berhasil dihapus permanen.' }
+  try {
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    if (error) {
+      return { success: false, message: error.message }
+    }
+    return { success: true, message: 'User berhasil dihapus permanen.' }
+  } catch (err: any) {
+    return { success: false, message: err.message }
+  }
 }
