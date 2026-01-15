@@ -24,3 +24,33 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer utilities {
+  /* Hilangkan scrollbar untuk Chrome, Safari & Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hilangkan scrollbar untuk IE, Edge & Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tambahkan ini untuk menghilangkan scrollbar browser utama */
+html, body {
+  /* Untuk Firefox */
+  scrollbar-width: none;
+  /* Untuk IE dan Edge */
+  -ms-overflow-style: none; 
+}
+
+/* Untuk Chrome, Safari, dan Opera */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
