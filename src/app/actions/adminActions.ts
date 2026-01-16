@@ -97,6 +97,7 @@ export async function resetUserPassword(userId: string, newPassword: string) {
 // --- DELETE USER (FIXED MANUAL METHOD) ---
 export async function deleteUser(userId: string) {
   try {
+<<<<<<< HEAD
     // LANGKAH 1: Hapus Profil Publik DULUAN
     // Ini akan memicu CASCADE database untuk menghapus: Sesi, Absen, dan File milik user ini.
     // Jika profil hilang, tidak ada lagi yang mengunci Auth User.
@@ -125,3 +126,14 @@ export async function deleteUser(userId: string) {
     return { success: false, message: err.message }
   }
 }
+=======
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    if (error) {
+      return { success: false, message: error.message }
+    }
+    return { success: true, message: 'User berhasil dihapus permanen.' }
+  } catch (err: any) {
+    return { success: false, message: err.message }
+  }
+}
+>>>>>>> 9ca3388f1e0684f9be345e197a55b0f2d6f8e2b8
