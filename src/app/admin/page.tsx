@@ -6,7 +6,7 @@ import { getAdminData, updateUserRole, resetUserPassword, deleteUser, updateAssi
 import { 
   ShieldAlert, Users, Search, KeyRound, Crown, CalendarCheck,
   Trash2, UserCog, LayoutDashboard, LogOut, Download, Briefcase,
-  Filter, ArrowUpDown, Tag, CheckCircle
+  Filter, ArrowUpDown, Tag, CheckCircle, CheckCircle2, AlertCircle
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -16,6 +16,7 @@ export default function AdminPage() {
   // Data State
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' }) // Toast Notification
   
   // Filter & Sort State
   const [search, setSearch] = useState('')
@@ -30,14 +31,19 @@ export default function AdminPage() {
   const [newRole, setNewRole] = useState('')
   const [processing, setProcessing] = useState(false)
 
-  // Helper Nilai Huruf
+  // Helper Functions
   const getGradeChar = (score: number) => {
     if (score > 85) return 'A'; if (score > 80) return 'A-'; if (score > 75) return 'B+';
     if (score > 70) return 'B'; if (score > 65) return 'B-'; if (score > 60) return 'C+';
     if (score > 55) return 'C'; if (score > 50) return 'D'; return 'E';
+}
+
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000)
   }
 
-  // Derived Data Jurusan
+  // Derived Data (List Jurusan)
   const jurusanList = Array.from(new Set(users.map(u => u.jurusan).filter(Boolean))).sort();
 
   useEffect(() => {
@@ -50,7 +56,6 @@ export default function AdminPage() {
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     if (profile?.role !== 'admin') {
-      alert('ANDA BUKAN ADMIN! AKSES DITOLAK.')
       return router.push('/dashboard')
     }
     fetchUsers()
@@ -62,7 +67,7 @@ export default function AdminPage() {
     if (res.success) {
         setUsers(res.data || [])
     } else {
-        alert("Gagal memuat data: " + res.error)
+        showNotification("Gagal memuat data: " + res.error, 'error')
     }
     setLoading(false)
   }
@@ -70,24 +75,20 @@ export default function AdminPage() {
   // --- FILTERING & SORTING LOGIC ---
   const filteredUsers = users
     .filter(u => {
-        // 1. Filter by Tab
         const isStaff = ['asisten', 'admin'].includes(u.role);
         if (activeTab === 'praktikan' && isStaff) return false;
         if (activeTab === 'staff' && !isStaff) return false;
 
-        // 2. Filter by Search
         const matchSearch = u.nama_lengkap?.toLowerCase().includes(search.toLowerCase()) || 
                             u.nim?.includes(search) || 
                             u.kode_asisten?.toLowerCase().includes(search.toLowerCase());
         if (!matchSearch) return false;
 
-        // 3. Filter by Jurusan
         if (filterJurusan && u.jurusan !== filterJurusan) return false;
 
         return true;
     })
     .sort((a, b) => {
-        // 4. Sort by NIM
         const nimA = a.nim || '';
         const nimB = b.nim || '';
         return sortNimAsc ? nimA.localeCompare(nimB) : nimB.localeCompare(nimA);
@@ -95,40 +96,67 @@ export default function AdminPage() {
 
   // --- HANDLERS ---
   const handleResetPassword = async () => {
-    if(inputVal.length < 6) return alert("Min 6 karakter")
+    if(inputVal.length < 6) return showNotification("Min 6 karakter", 'error')
     setProcessing(true)
     const res = await resetUserPassword(selectedUser.id, inputVal)
-    alert(res.message)
     setProcessing(false)
-    if(res.success) { setModalType(null); setInputVal('') }
+    
+    if(res.success) { 
+        showNotification(res.message)
+        setModalType(null) 
+        setInputVal('') 
+    } else {
+        showNotification(res.message, 'error')
+    }
   }
 
   const handleUpdateRole = async () => {
     setProcessing(true)
     const res = await updateUserRole(selectedUser.id, newRole)
-    alert(res.message)
-    if(res.success) { setModalType(null); fetchUsers(); }
     setProcessing(false)
+
+    if(res.success) { 
+        showNotification(res.message)
+        setModalType(null) 
+        fetchUsers()
+    } else {
+        showNotification(res.message, 'error')
+    }
   }
 
   const handleUpdateCode = async () => {
-    if(inputVal.length > 2) return alert("Kode asisten maksimal 2 karakter")
+    if(inputVal.length > 2) return showNotification("Kode maksimal 2 karakter", 'error')
     setProcessing(true)
     const res = await updateAssistantCode(selectedUser.id, inputVal)
-    alert(res.message)
-    if(res.success) { setModalType(null); setInputVal(''); fetchUsers(); }
     setProcessing(false)
+
+    if(res.success) { 
+        showNotification(res.message)
+        setModalType(null) 
+        setInputVal('')
+        fetchUsers()
+    } else {
+        showNotification(res.message, 'error')
+    }
   }
 
   const handleDelete = async (user: any) => {
-    if(!confirm(`YAKIN HAPUS USER ${user.nama_lengkap}? Data tidak bisa kembali!`)) return
+    if(!confirm(`Yakin hapus ${user.nama_lengkap}? Data tidak bisa kembali!`)) return
+    
+    // Set loading manual karena ini aksi di tabel
+    const loadingToast = showNotification("Menghapus user...", 'success') 
+    
     const res = await deleteUser(user.id)
-    alert(res.message)
-    if(res.success) fetchUsers()
+    if(res.success) {
+        showNotification(res.message)
+        fetchUsers()
+    } else {
+        showNotification(res.message, 'error')
+    }
   }
 
   const handleExportCSV = () => {
-    if (filteredUsers.length === 0) return alert("Tidak ada data untuk diekspor.");
+    if (filteredUsers.length === 0) return showNotification("Tidak ada data untuk diekspor.", 'error');
     
     let headers: string[] = [];
     let filename = "";
@@ -137,7 +165,7 @@ export default function AdminPage() {
         headers = ["Nama Lengkap", "NIM", "Jurusan", "Nilai Akhir", "Predikat"];
         filename = "Rekap_Nilai_Praktikan";
     } else {
-        headers = ["Nama Lengkap", "Kode Asisten", "Role", "Total Shift"];
+        headers = ["Nama Lengkap", "NIM", "Kode Asisten", "Role", "Total Shift"];
         filename = "Rekap_Shift_Asisten";
     }
 
@@ -153,7 +181,8 @@ export default function AdminPage() {
         } else {
             return [
                 `"${u.nama_lengkap}"`, 
-                `"${u.kode_asisten || '-'}"`, 
+                `"${u.nim}"`, // Tambah NIM di CSV Asisten
+                `"${u.kode_asisten || '--'}"`, 
                 `"${u.role}"`, 
                 u.stats.logs_count
             ];
@@ -171,11 +200,24 @@ export default function AdminPage() {
     document.body.removeChild(link);
   }
 
-  if (loading) return <div className="h-screen bg-slate-950 flex items-center justify-center text-amber-500 font-bold animate-pulse">LOADING...</div>
+  // --- RENDER ---
+  if (loading) return (
+    <div className="h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-amber-500 border-slate-800"></div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans p-4 md:p-10">
       
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-lg z-[100] flex items-center gap-3 animate-bounce-in ${toast.type === 'error' ? 'bg-red-900/80 text-red-100' : 'bg-green-900/80 text-green-100'}`}>
+            {toast.type === 'error' ? <AlertCircle size={18}/> : <CheckCircle2 size={18}/>}
+            <span className="font-medium text-sm">{toast.message}</span>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div className="flex items-center gap-4">
@@ -215,7 +257,7 @@ export default function AdminPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20}/>
               <input 
                 type="text" 
-                placeholder={activeTab === 'praktikan' ? "Cari Nama / NIM..." : "Cari Nama / Kode..."}
+                placeholder={activeTab === 'praktikan' ? "Cari Nama / NIM..." : "Cari Nama / NIM / Kode..."}
                 className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:border-amber-500/50 transition-all text-white placeholder-slate-600 shadow-sm"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -276,8 +318,15 @@ export default function AdminPage() {
                                   <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 mt-1.5">
                                     <div className="flex gap-2 items-center">
                                         <span className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[10px] md:text-xs font-mono text-slate-300">
-                                            {activeTab === 'staff' ? (user.kode_asisten || 'NONE') : user.nim}
+                                            {/* TAMPILKAN NIM UNTUK SEMUA (Termasuk Asisten) */}
+                                            {user.nim}
                                         </span>
+                                        {/* Jika staff, tampilkan juga kodenya */}
+                                        {activeTab === 'staff' && (
+                                            <span className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[10px] md:text-xs font-mono text-amber-400">
+                                                {user.kode_asisten || 'NO-TAG'}
+                                            </span>
+                                        )}
                                     </div>
                                     <span className="text-[10px] md:text-xs text-slate-500 uppercase truncate max-w-[150px] md:max-w-none">
                                         {user.jurusan}
@@ -317,7 +366,7 @@ export default function AdminPage() {
                               <td className="px-6 md:px-8 py-5">
                                   <div className="flex justify-center gap-2">
                                       {activeTab === 'staff' && (
-                                          <button onClick={() => { setSelectedUser(user); setModalType('code'); setInputVal(user.kode_asisten || '') }} className="p-2 bg-slate-800 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/30 border border-transparent rounded-xl transition-all" title="Edit Kode"><Tag size={16}/></button>
+                                          <button onClick={() => { setSelectedUser(user); setModalType('code'); setInputVal(user.kode_asisten || '') }} className="p-2 bg-slate-800 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/30 border border-transparent rounded-xl transition-all" title="Edit Kode Asisten"><Tag size={16}/></button>
                                       )}
                                       <button onClick={() => { setSelectedUser(user); setModalType('role'); setNewRole(user.role) }} className="p-2 bg-slate-800 hover:bg-purple-500/20 hover:text-purple-400 hover:border-purple-500/30 border border-transparent rounded-xl transition-all" title="Ganti Role"><UserCog size={16}/></button>
                                       <button onClick={() => { setSelectedUser(user); setModalType('password'); setInputVal('') }} className="p-2 bg-slate-800 hover:bg-amber-500/20 hover:text-amber-400 hover:border-amber-500/30 border border-transparent rounded-xl transition-all" title="Reset Password"><KeyRound size={16}/></button>
@@ -352,7 +401,7 @@ export default function AdminPage() {
                     <>
                         <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><Tag className="text-blue-400"/> Kode Asisten</h2>
                         <p className="text-slate-400 text-sm mb-6">Set kode asisten untuk: <span className="text-white font-bold">{selectedUser.nama_lengkap}</span></p>
-                        <input type="text" value={inputVal} onChange={e=>setInputVal(e.target.value.toUpperCase())} placeholder="Contoh: AB, AM" maxLength={2} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white mb-4 focus:outline-none focus:border-blue-500 uppercase font-mono tracking-widest text-center text-xl"/>
+                        <input type="text" value={inputVal} onChange={e=>setInputVal(e.target.value.toUpperCase())} placeholder="Contoh: AB, AM" maxLength={5} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white mb-4 focus:outline-none focus:border-blue-500 uppercase font-mono tracking-widest text-center text-xl"/>
                         <div className="flex gap-3">
                             <button onClick={()=>setModalType(null)} className="flex-1 py-3 bg-slate-800 rounded-xl font-bold text-slate-400 hover:bg-slate-700">Batal</button>
                             <button onClick={handleUpdateCode} disabled={processing} className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-white shadow-lg shadow-blue-900/20">{processing ? 'Menyimpan..' : 'Simpan'}</button>
