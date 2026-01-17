@@ -171,7 +171,7 @@ export default function Dashboard() {
     e.preventDefault(); setActionLoading(true);
     const { error } = await supabase.from('assistant_attendance').insert({ assistant_id: profile.id, modul: absenAsistenForm.modul, tanggal: absenAsistenForm.tanggal, shift: absenAsistenForm.shift })
     if (error) {
-        if (error.code === '23505') showNotification('Anda sudah absen di jadwal ini!', 'error')
+        if (error.code === '23505') showNotification('Sudah absen di jadwal ini!', 'error')
         else showNotification(error.message, 'error')
     } else { 
         showNotification('Absensi tersimpan!'); fetchData(false); 
@@ -352,25 +352,27 @@ export default function Dashboard() {
                     {profile.role === 'praktikan' && scoreData && (
                         <div>
                             <div className="flex items-center gap-2 mb-4 px-1"><div className="p-2 bg-emerald-900/20 text-emerald-400 rounded-lg"><LayoutDashboard size={18}/></div><h2 className="font-bold text-lg text-slate-100">Ringkasan Akademik</h2></div>
-                            <div className="grid grid-cols-2 gap-2 md:gap-3">
-                                <SummaryCardSmall icon={BookOpen} title="Modul Selesai" value={`${scoreData.moduleCount}/7`} color="blue" />
-                                <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between relative overflow-hidden">
-                                <div className="flex items-center gap-3 z-10">
-                                    <div className="p-2 rounded-xl bg-emerald-900/20 text-emerald-400">
-                                        <Calculator size={20} />
-                                    </div>
-                                    <div>
-                                        <span className="block text-xl font-bold text-white">{scoreData.final}</span>
-                                        <span className="text-[10px] uppercase font-bold text-slate-500">Nilai Akhir</span>
+                                <div className="grid grid-cols-2 gap-2 md:gap-3">
+                                    
+                                    {/* Modul Selesai */}
+                                    <SummaryCardSmall icon={BookOpen} title="Modul Selesai" value={`${scoreData.moduleCount}/7`} color="blue" />
+
+                                    {/* Nilai & Predikat */}
+                                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col items-center justify-center gap-2">
+                                        <div className="p-2 rounded-xl bg-emerald-900/20 text-emerald-400">
+                                            <Award size={20} />
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="block text-xl font-bold text-white">
+                                                {scoreData.final} <span className="font-bold text-sm bg-indigo-900/30 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded">{scoreData.finalGrade}</span>
+                                            </span>
+                                            <span className="text-[10px] uppercase font-bold text-slate-500 mt-1 block">
+                                                Nilai Akhir
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-center justify-center bg-slate-800 border border-slate-700 w-12 h-12 rounded-xl z-10">
-                                    <span className="text-lg font-black text-purple-400">{scoreData.finalGrade}</span>
-                                </div>
-                                <div className="absolute right-0 top-0 w-16 h-full bg-gradient-to-l from-emerald-900/10 to-transparent pointer-events-none"></div>
                             </div>
-                            </div>
-                        </div>
                     )}
                 </div>
             )}
@@ -403,7 +405,7 @@ export default function Dashboard() {
                                 <Select value={absenPraktikanForm.shift} onChange={(e:any) => setAbsenPraktikanForm({...absenPraktikanForm, shift: e.target.value})}>{SHIFT_LIST.map(s => <option key={s} value={s}>Shift {s}</option>)}</Select>
                                 <Select required value={absenPraktikanForm.assistant_id} onChange={(e:any) => setAbsenPraktikanForm({...absenPraktikanForm, assistant_id: e.target.value})}><option value="">-- Pilih Asisten --</option>{assistants.map(a => <option key={a.id} value={a.id}>{a.nama_lengkap}</option>)}</Select>
                                 <DateInput value={absenPraktikanForm.tanggal} onChange={(e:any) => setAbsenPraktikanForm({...absenPraktikanForm, tanggal: e.target.value})} />
-                                <Button disabled={actionLoading} className="w-full mt-4">{actionLoading ? 'Menyimpan...' : 'Kirim Kehadiran'}</Button>
+                                <Button disabled={actionLoading} className="w-full mt-4">{actionLoading ? 'Mengirim...' : 'Kirim'}</Button>
                             </form>
                         </Card>
                     )}
@@ -413,7 +415,7 @@ export default function Dashboard() {
                         <>
                             <Card>
                                 <h2 className="font-bold text-lg mb-4 text-white">
-                                    Absen {profile.role === 'admin' ? 'Administrator' : 'Asisten'}
+                                    Absen {(profile.role === 'asisten' || profile.role === 'admin') ? 'Asisten' : '-'}
                                 </h2>
                                 <form onSubmit={handleAbsenAsisten} className="grid grid-cols-2 gap-3">
                                     <Select value={absenAsistenForm.modul} onChange={(e:any) => setAbsenAsistenForm({...absenAsistenForm, modul: e.target.value})}>{MODUL_LIST.map(m => <option key={m} value={m}>{m}</option>)}</Select>
@@ -459,117 +461,160 @@ export default function Dashboard() {
                     <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-sm">
                         <div className="overflow-x-auto no-scrollbar">
                             <table className="w-full text-sm text-left">
-                                <thead className="bg-slate-950 text-slate-400 text-xs uppercase font-bold"><tr><th className="px-6 py-4">Modul</th><th className="px-6 py-4 text-center">Tanggal & Shift</th><th className="px-6 py-4 text-center">Asisten</th><th className="px-6 py-4">{isStaff ? 'Praktikan' : 'Status'}</th><th className="px-6 py-4 text-center">Nilai</th><th className="px-6 py-4 text-center">Akhir</th>{isStaff && <th className="px-6 py-4"></th>}</tr></thead>
+                                <thead className="bg-slate-950 text-slate-400 text-xs uppercase font-bold">
+                                    <tr>
+                                        <th className="px-6 py-4">Modul</th>
+                                        <th className="px-6 py-4 text-center"> Jadwal </th>
+                                        
+                                        {!isStaff && (
+                                            <th className="px-6 py-4 text-center">Asisten</th>
+                                        )}
+                                        
+                                        <th className="px-6 py-4">{isStaff ? 'Praktikan' : 'Status'}</th>
+                                        <th className="px-6 py-4 text-center">Nilai</th>
+                                        <th className="px-6 py-4 text-center">Akhir</th>
+                                        
+                                        {isStaff && (
+                                            <th className="px-6 py-4"></th>
+                                        )}
+                                    </tr>
+                                </thead>
                                 <tbody className="divide-y divide-slate-800">
                                     {filteredSessions.length === 0 ? (
-                                        <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Data kosong.</td></tr>
+                                        <tr><td colSpan={isStaff ? 6 : 6} className="px-6 py-8 text-center text-slate-500">Data kosong.</td></tr>
                                     ) : (
-                                        filteredSessions.map(sess => (
-                                            <tr key={sess.id} className="hover:bg-slate-800/50 transition-colors">
-                                                
-                                                {/* MODUL & TANGGAL */}
-                                                <td className="px-6 py-4">
-                                                    <div className="font-bold text-slate-100">{sess.modul}</div>
-                                                    <div className="text-xs text-slate-500">{sess.tanggal}</div>
-                                                </td>
+                                        filteredSessions.map(sess => {
+                                            const isEditing = editingId === sess.id;
 
-                                                {/* ASISTEN*/}
-                                                <td className="px-6 py-4 text-center">
-                                                    {isStaff ? (
-                                                        <div>
-                                                            <div className="font-medium text-slate-200">{sess.student?.nama_lengkap}</div>
-                                                            {/* Tampilkan Shift untuk Asisten/Admin */}
-                                                            <div className="mt-1">
-                                                                <span className="text-[10px] bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded border border-blue-900/50">
-                                                                    Shift {sess.shift}
-                                                                </span>
-                                                            </div>
+                                            return (
+                                                <tr key={sess.id} className="hover:bg-slate-800/50 transition-colors">
+                                                    
+                                                    {/* MODUL*/}
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-bold text-slate-100">{sess.modul}</div>
+                                                    </td>
+
+                                                    {/* JADWAL*/}
+                                                    <td className="px-6 py-4 text-center">
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-xs text-slate-400 font-medium">{sess.tanggal}</span>
+                                                            <span className="mt-1 text-[10px] bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded border border-blue-900/50 font-bold">
+                                                                Shift {sess.shift}
+                                                            </span>
                                                         </div>
-                                                    ) : (
-                                                        <span className="text-[10px] font-mono font-bold bg-indigo-900/30 text-indigo-300 border border-indigo-500/30 px-2 py-1 rounded">
-                                                            {sess.assistant?.kode_asisten || '-'}
-                                                        </span>
+                                                    </td>
+
+                                                    {/* ASISTEN */}
+                                                    {!isStaff && (
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className="text-[10px] font-mono font-bold bg-indigo-900/30 text-indigo-300 border border-indigo-500/30 px-2 py-1 rounded">
+                                                                {sess.assistant?.kode_asisten || '-'}
+                                                            </span>
+                                                        </td>
                                                     )}
-                                                </td>
 
-                                                {/* STATUS */}
-                                                <td className="px-6 py-4">
-                                                     <span className={`px-2 py-1 rounded text-xs font-bold ${sess.status==='graded'?'bg-emerald-900/30 text-emerald-400':'bg-yellow-900/30 text-yellow-400'}`}>
-                                                        {sess.status==='graded'?'Selesai':'Pending'}
-                                                    </span>
-                                                </td>
-
-                                                {/* MODE EDIT (ASISTEN) */}
-                                                {editingId === sess.id ? (
-                                                    <td colSpan={3} className="px-6 py-4 bg-blue-900/10 text-center">
-                                                        {sess.modul === 'Sosialisasi' ? (
-                                                            <div className="flex gap-2 justify-center">
-                                                                <Button onClick={()=>saveGrade(sess.id)} className="py-1 px-4 text-xs">Konfirmasi Bonus</Button>
-                                                                <button onClick={()=>setEditingId(null)} className="text-xs text-slate-500 underline">Batal</button>
+                                                    {/* PRAKTIKAN / STATUS*/}
+                                                    <td className="px-6 py-4">
+                                                        {isStaff ? (
+                                                            <div>
+                                                                <div className="font-medium text-slate-200">{sess.student?.nama_lengkap}</div>
+                                                                <div className="text-xs text-slate-500">{sess.student?.nim}</div>
                                                             </div>
                                                         ) : (
-                                                            /* Form Edit Biasa */
-                                                            <div className="flex flex-col gap-3">
-                                                                <div className="flex gap-2 justify-center">
-                                                                    {['tp','tl','pd','la'].map(k => (
-                                                                        <div key={k} className="text-center w-12">
-                                                                            <label className="text-[10px] uppercase font-bold text-slate-400">{k}</label>
-                                                                            <input type="number" value={(gradeForm as any)[k]} onChange={e=>setGradeForm({...gradeForm, [k]: +e.target.value})} className="w-full text-center border rounded py-1 text-sm bg-slate-800 border-slate-700 text-white"/>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button onClick={()=>setEditingId(null)} className="text-xs text-slate-500">Batal</button>
-                                                                    <button onClick={()=>saveGrade(sess.id)} className="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold">Simpan</button>
-                                                                </div>
-                                                            </div>
+                                                            <span className={`px-2 py-1 rounded text-xs font-bold ${sess.status==='graded'?'bg-emerald-900/30 text-emerald-400':'bg-yellow-900/30 text-yellow-400'}`}>
+                                                                {sess.status==='graded'?'Selesai':'Pending'}
+                                                            </span>
                                                         )}
                                                     </td>
-                                                ) : (
-                                                    <>
-                                                        {/* RINCIAN NILAI (TP/TL/PD/LA) */}
-                                                        <td className="px-6 py-4 text-center">
+
+                                                    {/* --- CONDITIONAL (EDIT dan VIEW) --- */}
+                                                    {isEditing ? (
+                                                        // --- MODE EDIT ---
+                                                        <td colSpan={3} className="px-6 py-4 bg-blue-900/10 text-center">
                                                             {sess.modul === 'Sosialisasi' ? (
-                                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-700 px-2 py-1 rounded">Nilai Tambahan</span>
+                                                                <div className="flex gap-2 justify-center">
+                                                                    <Button onClick={()=>saveGrade(sess.id)} className="py-1 px-4 text-xs">Konfirmasi</Button>
+                                                                    <button onClick={()=>setEditingId(null)} className="text-xs text-slate-500">Batal</button>
+                                                                </div>
                                                             ) : (
-                                                                <div className="flex justify-center gap-1">
-                                                                    {['tp','tl','pd','la'].map(k => (
-                                                                        <div key={k} className="flex flex-col items-center w-8 p-1 bg-slate-800 rounded">
-                                                                            <span className="text-[8px] text-slate-400 uppercase">{k}</span>
-                                                                            <span className="text-xs font-bold text-slate-300">{(sess as any)[`nilai_${k}`]}</span>
-                                                                        </div>
-                                                                    ))}
+                                                                <div className="flex flex-col gap-3">
+                                                                    <div className="flex gap-2 justify-center">
+                                                                        {['tp','tl','pd','la'].map(k => (
+                                                                            <div key={k} className="text-center w-12">
+                                                                                <label className="text-[10px] uppercase font-bold text-slate-400">{k}</label>
+                                                                                <input 
+                                                                                    type="number" 
+                                                                                    value={(gradeForm as any)[k]} 
+                                                                                    onChange={e=>setGradeForm({...gradeForm, [k]: +e.target.value})} 
+                                                                                    onFocus={(e) => e.target.select()}
+                                                                                    className="w-full text-center border rounded py-1 text-sm bg-slate-800 border-slate-700 text-white focus:border-blue-500 outline-none"
+                                                                                />
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                    <div className="flex justify-end gap-2">
+                                                                        <button onClick={()=>setEditingId(null)} className="text-xs text-slate-500">Batal</button>
+                                                                        <button onClick={()=>saveGrade(sess.id)} className="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold">Simpan</button>
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </td>
+                                                    ) : (
+                                                        // --- MODE VIEW ---
+                                                        [
+                                                            // RINCIAN NILAI
+                                                            <td key="rincian" className="px-6 py-4 text-center">
+                                                                {sess.modul === 'Sosialisasi' ? (
+                                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-700 px-2 py-1 rounded">Tambahan</span>
+                                                                ) : (
+                                                                    <div className="flex justify-center gap-1">
+                                                                        {['tp','tl','pd','la'].map(k => (
+                                                                            <div key={k} className="flex flex-col items-center w-8 p-1 bg-slate-800 rounded">
+                                                                                <span className="text-[8px] text-slate-400 uppercase">{k}</span>
+                                                                                <span className="text-xs font-bold text-slate-300">{(sess as any)[`nilai_${k}`]}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </td>,
 
-                                                        {/* NILAI AKHIR (ANGKA & HURUF) */}
-                                                        <td className="px-6 py-4 text-center">
-                                                            {sess.status === 'graded' ? (
-                                                                <div className="flex flex-col items-center">
-                                                                    <span className="font-bold text-lg text-emerald-400">
-                                                                        {sess.modul === 'Sosialisasi' ? '10' : sess.nilai_akhir}
-                                                                    </span>
-                                                                    
-                                                                    <span className="text-[10px] bg-white/10 px-2 rounded mt-1 font-mono text-slate-400">
-                                                                        {sess.modul === 'Sosialisasi' ? 'AUTO' : getGradeChar(Number(sess.nilai_akhir))}
-                                                                    </span>
-                                                                </div>
-                                                            ) : '-'}
-                                                        </td>
+                                                            // NILAI AKHIR
+                                                            <td key="akhir" className="px-6 py-4 text-center">
+                                                                {sess.status === 'graded' ? (
+                                                                    <div className="flex flex-col items-center">
+                                                                        <span className="font-bold text-lg text-emerald-400">
+                                                                            {sess.modul === 'Sosialisasi' ? '10' : sess.nilai_akhir}
+                                                                        </span>
+                                                                        <span className="text-[10px] bg-white/10 px-2 rounded mt-1 font-mono text-slate-400">
+                                                                            {sess.modul === 'Sosialisasi' ? '-' : getGradeChar(Number(sess.nilai_akhir))}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : '-'}
+                                                            </td>,
 
-                                                        {/* TOMBOL EDIT */}
-                                                        {isStaff && (
-                                                            <td className="px-6 py-4 text-right">
-                                                                <button onClick={()=> { setEditingId(sess.id); setGradeForm({tp: sess.nilai_tp||0, tl: sess.nilai_tl||0, pd: sess.nilai_pd||0, la: sess.nilai_la||0}) }} className="bg-slate-800 hover:bg-blue-900/30 p-2 rounded-full text-slate-400 hover:text-blue-400 transition-colors">
-                                                                    <FileText size={16}/>
-                                                                </button>
-                                                            </td>
-                                                        )}
-                                                    </>
-                                                )}
-                                            </tr>
-                                        ))
+                                                            // TOMBOL EDIT
+                                                            isStaff ? (
+                                                                <td key="action" className="px-6 py-4 text-right">
+                                                                    <button onClick={()=> { 
+                                                                            setEditingId(sess.id); 
+                                                                            setGradeForm({
+                                                                                tp: sess.nilai_tp||0, 
+                                                                                tl: sess.nilai_tl||0, 
+                                                                                pd: sess.nilai_pd||0, 
+                                                                                la: sess.nilai_la||0
+                                                                            }) 
+                                                                        }} 
+                                                                        className="bg-slate-800 hover:bg-blue-900/30 p-2 rounded-full text-slate-400 hover:text-blue-400 transition-colors"
+                                                                    >
+                                                                        <FileText size={16}/>
+                                                                    </button>
+                                                                </td>
+                                                            ) : null
+                                                        ]
+                                                    )}
+                                                </tr>
+                                            )
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -589,7 +634,7 @@ export default function Dashboard() {
             )}
 
             {/* TAB: PROFILE & GANTI PASSWORD */}
-            {activeTab === 'create-announcement' && ( <Card><h2 className="font-bold text-xl mb-4 text-white">Tulis Pengumuman Baru</h2><form onSubmit={handlePostAnnouncement} className="space-y-4"><div><label className="text-xs font-bold text-slate-500 uppercase ml-1">Judul</label><Input name="judul" required placeholder="Judul pengumuman" /></div><div><label className="text-xs font-bold text-slate-500 uppercase ml-1">Isi Pengumuman</label><textarea name="isi" required rows={5} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-all resize-none text-slate-200 placeholder-slate-600" placeholder="Isi..."></textarea></div><div className="flex gap-2 pt-2"><Button type="button" variant="outline" onClick={()=>setActiveTab('home')} className="flex-1">Batal</Button><Button disabled={actionLoading} className="flex-1">{actionLoading ? 'Memposting...' : 'Kirim'}</Button></div></form></Card> )}
+            {activeTab === 'create-announcement' && ( <Card><h2 className="font-bold text-xl mb-4 text-white">Pengumuman Baru</h2><form onSubmit={handlePostAnnouncement} className="space-y-4"><div><label className="text-xs font-bold text-slate-500 uppercase ml-1">Judul</label><Input name="judul" required placeholder="Judul pengumuman" /></div><div><label className="text-xs font-bold text-slate-500 uppercase ml-1">Isi Pengumuman</label><textarea name="isi" required rows={5} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-all resize-none text-slate-200 placeholder-slate-600" placeholder="Isi..."></textarea></div><div className="flex gap-2 pt-2"><Button type="button" variant="outline" onClick={()=>setActiveTab('home')} className="flex-1">Batal</Button><Button disabled={actionLoading} className="flex-1">{actionLoading ? 'Memposting...' : 'Posting'}</Button></div></form></Card> )}
 
             {activeTab === 'profile' && (
                 <div className="space-y-6 animate-fade-in max-w-2xl mx-auto">
