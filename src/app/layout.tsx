@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Lab Fister",
   description: "Sistem Informasi Laboratorium Fisika Terapan FT UNTIRTA",
   icons: {
-    icon: 'https://tdaxxqeegswgqvsokquv.supabase.co/storage/v1/object/public/logo-fister/fister-logo.jpg',
+    icon: "/logo-fister.png",
   },
 };
 

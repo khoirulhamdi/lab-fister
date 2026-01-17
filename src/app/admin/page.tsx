@@ -43,7 +43,7 @@ export default function AdminPage() {
     setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000)
   }
 
-  // Derived Data (List Jurusan)
+  // List Jurusan
   const jurusanList = Array.from(new Set(users.map(u => u.jurusan).filter(Boolean))).sort();
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  // --- FILTERING & SORTING LOGIC ---
+  // FILTERING & SORTING
   const filteredUsers = users
     .filter(u => {
         const isStaff = ['asisten', 'admin'].includes(u.role);
@@ -94,7 +94,7 @@ export default function AdminPage() {
         return sortNimAsc ? nimA.localeCompare(nimB) : nimB.localeCompare(nimA);
     });
 
-  // --- HANDLERS ---
+  // HANDLERS
   const handleResetPassword = async () => {
     if(inputVal.length < 6) return showNotification("Min 6 karakter", 'error')
     setProcessing(true)
@@ -143,7 +143,6 @@ export default function AdminPage() {
   const handleDelete = async (user: any) => {
     if(!confirm(`Yakin hapus ${user.nama_lengkap}? Data tidak bisa kembali!`)) return
     
-    // Set loading manual karena ini aksi di tabel
     const loadingToast = showNotification("Menghapus user...", 'success') 
     
     const res = await deleteUser(user.id)
@@ -181,7 +180,7 @@ export default function AdminPage() {
         } else {
             return [
                 `"${u.nama_lengkap}"`, 
-                `"${u.nim}"`, // Tambah NIM di CSV Asisten
+                `"${u.nim}"`,
                 `"${u.kode_asisten || '--'}"`, 
                 `"${u.role}"`, 
                 u.stats.logs_count
@@ -200,7 +199,7 @@ export default function AdminPage() {
     document.body.removeChild(link);
   }
 
-  // --- RENDER ---
+  // RENDER
   if (loading) return (
     <div className="h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-amber-500 border-slate-800"></div>
@@ -210,7 +209,6 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans p-4 md:p-10">
       
-      {/* Toast Notification */}
       {toast.show && (
         <div className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-lg z-[100] flex items-center gap-3 animate-bounce-in ${toast.type === 'error' ? 'bg-red-900/80 text-red-100' : 'bg-green-900/80 text-green-100'}`}>
             {toast.type === 'error' ? <AlertCircle size={18}/> : <CheckCircle2 size={18}/>}

@@ -2,7 +2,6 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// Inisialisasi Supabase Admin (Bypass RLS)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -71,7 +70,6 @@ export async function getAdminData() {
 }
 
 // --- UPDATE ACTIONS ---
-
 export async function updateAssistantCode(userId: string, newCode: string) {
   const { error } = await supabaseAdmin
     .from('profiles')
@@ -94,13 +92,9 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   return { success: true, message: 'Password berhasil direset!' }
 }
 
-// --- DELETE USER (FIXED MANUAL METHOD) ---
+// --- DELETE USER ---
 export async function deleteUser(userId: string) {
   try {
-<<<<<<< HEAD
-    // LANGKAH 1: Hapus Profil Publik DULUAN
-    // Ini akan memicu CASCADE database untuk menghapus: Sesi, Absen, dan File milik user ini.
-    // Jika profil hilang, tidak ada lagi yang mengunci Auth User.
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .delete()
@@ -108,15 +102,12 @@ export async function deleteUser(userId: string) {
 
     if (profileError) {
       console.error("Gagal hapus profil:", profileError)
-      // Kita lanjutkan saja ke Auth, siapa tahu profilnya emang udah hilang duluan
     }
 
-    // LANGKAH 2: Hapus Akun Login (Auth)
-    // Sekarang aman karena 'pengikat' (Profil) sudah dilepas.
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     
     if (authError) {
-      console.error("Gagal hapus Auth:", authError)
+      console.error("Gagal hapus auth:", authError)
       return { success: false, message: authError.message }
     }
 
@@ -126,14 +117,3 @@ export async function deleteUser(userId: string) {
     return { success: false, message: err.message }
   }
 }
-=======
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-    if (error) {
-      return { success: false, message: error.message }
-    }
-    return { success: true, message: 'User berhasil dihapus permanen.' }
-  } catch (err: any) {
-    return { success: false, message: err.message }
-  }
-}
->>>>>>> 9ca3388f1e0684f9be345e197a55b0f2d6f8e2b8
