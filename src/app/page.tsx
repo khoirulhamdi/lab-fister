@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import Cookies from 'js-cookie' 
 import { 
   Eye, 
   EyeOff, 
@@ -48,10 +49,30 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        // PROSES LOGIN
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        router.push('/dashboard')
+
+        if (data.session) {
+            // Simpan Acces Token
+            Cookies.set('fister-token', data.session.access_token, { 
+                expires: 30,
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax'
+            })
+
+            Cookies.set('fister-refresh-token', data.session.refresh_token, { 
+                expires: 30,
+                path: '/',
+                secure: process.env.NODE_ENV === 'production'
+            })
+        }
+
+        window.location.href = '/dashboard'
+
       } else {
+        // PROSES REGISTER
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { data: { nama_lengkap: cleanNama, jurusan, nim: cleanNim } }
@@ -75,9 +96,8 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4 font-sans text-slate-800 dark:text-slate-100 transition-colors">
-      
-      {/* Container Card */}
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none p-8 animate-fade-in">
+       {/* Container Card */}
+       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none p-8 animate-fade-in">
         
         {/* Header Section */}
         <div className="flex flex-col items-center text-center mb-8">
@@ -165,9 +185,9 @@ export default function AuthPage() {
                 </button>
             </p>
         </div>
-      </div>
-      
-      <p className="mt-8 text-xs text-slate-400 font-medium">© {new Date().getFullYear()} Lab Fister. All rights reserved.</p>
+       </div>
+       
+       <p className="mt-8 text-xs text-slate-400 font-medium">© {new Date().getFullYear()} Lab Fister. All rights reserved.</p>
     </div>
   )
 }
