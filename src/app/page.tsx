@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react' 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie' 
@@ -32,11 +32,20 @@ export default function AuthPage() {
   const supabase = createClient()
   const router = useRouter()
 
+  useEffect(() => {
+    // Cek apakah ada tiket (cookie) di saku user?
+    const token = Cookies.get('fister-token')
+    
+    if (token) {
+      window.location.href = '/dashboard'
+    }
+  }, []) 
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setErrorMsg('')
-
+    
     const cleanNim = nim.trim().toUpperCase()
     const cleanNama = nama.toUpperCase()
     
