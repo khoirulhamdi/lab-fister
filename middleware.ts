@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
   // Ambil cookie yang tadi kita set (fister-token)
-  const token = requesSt.cookies.get('fister-token')
+  const token = request.cookies.get('fister-token')
 
   const { pathname } = request.nextUrl
 
