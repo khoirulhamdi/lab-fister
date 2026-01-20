@@ -44,7 +44,6 @@ export async function getAdminData() {
     
     const isTransparencyOn = setting?.value === 'true'
 
-    // 3. Format Data
     const formattedUsers = users.map((u: any) => {
       const sessions = u.practicum_sessions || [];
       
@@ -72,7 +71,6 @@ export async function getAdminData() {
       }
     })
 
-    // Return data user + status transparansi
     return { success: true, data: formattedUsers, transparency: isTransparencyOn }
 
   } catch (err: any) {
@@ -81,8 +79,6 @@ export async function getAdminData() {
 }
 
 // --- UPDATE ACTIONS ---
-
-// [BARU] Update Kelompok
 export async function updateUserGroup(userId: string, newGroup: string) {
   const { error } = await supabaseAdmin
     .from('profiles')
@@ -93,7 +89,6 @@ export async function updateUserGroup(userId: string, newGroup: string) {
   return { success: true, message: 'Kelompok berhasil diupdate.' }
 }
 
-// [BARU] Toggle Transparansi
 export async function toggleTransparency(newValue: boolean) {
   const { error } = await supabaseAdmin
     .from('app_settings')

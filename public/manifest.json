@@ -2,7 +2,7 @@
   "name": "Lab Fister",
   "short_name": "LabFister",
   "description": "Sistem Informasi Lab. Fisika Terapan",
-  "start_url": "/",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#020617",

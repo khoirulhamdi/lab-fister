@@ -1,202 +1,261 @@
 'use client'
-import { useState, useEffect } from 'react' 
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import Cookies from 'js-cookie' 
 import { 
-  Eye, 
-  EyeOff, 
-  Loader2, 
-  LogIn, 
-  UserPlus, 
-  User, 
-  Lock, 
-  GraduationCap, 
-  AlertCircle 
+  ArrowRight, Users, ChevronDown, 
+  ClipboardCheck, BarChart2, FolderOpen, 
+  Zap, GraduationCap, MessageCircle, Send
 } from 'lucide-react'
 
-const JURUSAN_LIST = ['TEKNIK ELEKTRO', 'TEKNIK MESIN', 'TEKNIK INDUSTRI', 'TEKNIK KIMIA', 'TEKNIK SIPIL', 'TEKNIK METALURGI']
-
-export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [errorMsg, setErrorMsg] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-
-  // Form Data
-  const [nim, setNim] = useState('')
-  const [password, setPassword] = useState('')
-  const [nama, setNama] = useState('')
-  const [jurusan, setJurusan] = useState(JURUSAN_LIST[0])
-
+export default function LandingPage() {
   const supabase = createClient()
-  const router = useRouter()
+  
+  // State Data
+  const [studentCount, setStudentCount] = useState(0)
+  const [assistants, setAssistants] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  // State UI
+  const [isAssistantsOpen, setIsAssistantsOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
-    // Cek apakah ada tiket (cookie) di saku user?
-    const token = Cookies.get('fister-token')
+    fetchLandingData()
     
-    if (token) {
-      window.location.href = '/dashboard'
+    // Logic Scroll Navbar
+    const handleScroll = () => {
+        setIsScrolled(window.scrollY > 50)
     }
-  }, []) 
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setErrorMsg('')
-    
-    const cleanNim = nim.trim().toUpperCase()
-    const cleanNama = nama.toUpperCase()
-    
-    if (!cleanNim) {
-      setErrorMsg('NIM tidak boleh kosong')
-      setLoading(false)
-      return
-    }
-    const email = `${cleanNim}@lab.com`
-
+  const fetchLandingData = async () => {
     try {
-      if (isLogin) {
-        // PROSES LOGIN
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'praktikan')
+      
+      setStudentCount(count || 0)
 
-        if (data.session) {
-            // Simpan Acces Token
-            Cookies.set('fister-token', data.session.access_token, { 
-                expires: 30,
-                path: '/',
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
-            })
-
-            Cookies.set('fister-refresh-token', data.session.refresh_token, { 
-                expires: 30,
-                path: '/',
-                secure: process.env.NODE_ENV === 'production'
-            })
-        }
-
-        window.location.href = '/dashboard'
-
-      } else {
-        // PROSES REGISTER
-        const { data, error } = await supabase.auth.signUp({
-          email, password,
-          options: { data: { nama_lengkap: cleanNama, jurusan, nim: cleanNim } }
-        })
-        if (error) throw error
-        if (data.user) {
-          const { error: profileError } = await supabase.from('profiles').insert({ 
-              id: data.user.id, nim: cleanNim, nama_lengkap: cleanNama, jurusan 
-            })
-          if (profileError) throw new Error(profileError.message)
-          alert('Registrasi Berhasil! Silakan Login.')
-          setIsLogin(true)
-        }
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message)
+      const { data: asdos } = await supabase
+        .from('profiles')
+        .select('nama_lengkap, kode_asisten, role, jurusan, telegram') 
+        .in('role', ['asisten', 'admin'])
+        .order('kode_asisten', { ascending: true })
+      
+      setAssistants(asdos || [])
+    } catch (err) {
+      console.error("Gagal load data landing page")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4 font-sans text-slate-800 dark:text-slate-100 transition-colors">
-       {/* Container Card */}
-       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none p-8 animate-fade-in">
-        
-        {/* Header Section */}
-        <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-sm border border-slate-100 dark:border-slate-700">
-                <img src="/logo-fister.png" alt="Lab Logo" className="w-19 h-19  object-contain" />
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30 overflow-x-hidden">
+      
+      {/* NAVBAR */}
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-500 border-b ${isScrolled ? 'translate-y-0 opacity-100 bg-slate-950/80 backdrop-blur-lg border-slate-800/50' : '-translate-y-24 opacity-0 border-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <img 
+                src="/logo-fister.png" 
+                alt="Logo Lab" 
+                className="w-10 h-10 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" 
+                onError={(e) => {e.currentTarget.style.display='none'}}
+             />
+             <div className="leading-tight hidden md:block">
+                <span className="block font-bold text-white text-lg tracking-tight">Lab. Fisika Terapan</span>
+                <span className="block text-[10px] text-slate-400 uppercase tracking-widest">FT UNTIRTA</span>
+             </div>
+          </div>
+          
+          <Link href="/login" className="group px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full transition-all flex items-center gap-2 shadow-lg shadow-blue-900/20">
+             Masuk 
+             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+          </Link>
+        </div>
+      </nav>
+
+      {/* HERO SECTION */}
+      <section className="relative pt-32 pb-20 px-6 text-center min-h-screen flex flex-col justify-center">
+        {/* Background Glows */}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] -z-10 animate-pulse-slow"></div>
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-cyan-600/10 rounded-full blur-[100px] -z-10"></div>
+
+        <div className="max-w-4xl mx-auto flex flex-col items-center animate-fade-in-up">
+            {/* Logo Utama Besar */}
+            <div className="mb-8 relative group">
+                <div className="absolute inset-0 bg-blue-600/20 blur-3xl rounded-full group-hover:bg-blue-500/30 transition-all duration-500"></div>
+                <img 
+                    src="/logo-fister.png" 
+                    alt="Logo Besar" 
+                    className="w-32 h-32 md:w-44 md:h-44 object-contain relative z-10 drop-shadow-2xl transform group-hover:scale-105 transition-transform duration-500"
+                />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                {isLogin ? 'Selamat Datang' : 'Buat Akun Baru'}
+
+            {/* Judul & Subjudul */}
+            <h1 className="text-4xl md:text-7xl font-black text-white mb-6 tracking-tight leading-tight">
+                Laboratorium <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500">
+                    Fisika Terapan
+                </span>
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
-                {isLogin ? 'Sistem Informasi Lab. Fisika Terapan' : ''}
+            <p className="text-sm md:text-lg text-slate-400 font-medium uppercase tracking-[0.2em] mb-12 border-b border-slate-800 pb-8">
+                Fakultas Teknik Universitas Sultan Ageng Tirtayasa
             </p>
+
+            {/* Tombol CTA */}
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <Link href="/login" className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_50px_rgba(37,99,235,0.5)] flex items-center justify-center gap-2 hover:-translate-y-1">
+                    <Zap size={20} className="fill-white"/> Login Praktikan
+                </Link>
+                <a href="#fitur" className="px-8 py-4 bg-slate-900 border border-slate-800 text-slate-300 font-bold rounded-2xl hover:bg-slate-800 hover:text-white transition-all flex items-center justify-center gap-2 hover:-translate-y-1">
+                    Explore Fitur
+                </a>
+            </div>
         </div>
+      </section>
 
-        {/* Error Alert */}
-        {errorMsg && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 p-4 rounded-2xl mb-6 text-sm font-medium flex items-center gap-2 animate-pulse">
-            <AlertCircle size={18} /> {errorMsg}
-          </div>
-        )}
+      {/* STATS & ASSISTANTS SECTION */}
+      <section className="py-10 px-6 max-w-5xl mx-auto">
+          {/* Grid Statistik */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Card Total Praktikan */}
+              <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl flex items-center justify-between hover:border-blue-500/30 transition-colors group">
+                  <div>
+                      <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Total Praktikan Aktif</p>
+                      <h3 className="text-4xl font-black text-white group-hover:text-blue-400 transition-colors">{loading ? '...' : studentCount}</h3>
+                  </div>
+                  <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                      <Users size={28}/>
+                  </div>
+              </div>
 
-        {/* Form */}
-        <form onSubmit={handleAuth} className="space-y-4">
-          
-          {/* Register Fields */}
-          {!isLogin && (
-            <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Nama Lengkap</label>
-                    <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input required className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white placeholder-slate-400 uppercase" 
-                            placeholder="NAMA LENGKAP" onChange={e => setNama(e.target.value)} />
-                    </div>
-                </div>
-                <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Jurusan</label>
-                    <div className="relative">
-                        <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <select className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-8 py-3.5 text-sm font-medium appearance-none focus:outline-none focus:border-blue-500 dark:text-white"
-                            onChange={e => setJurusan(e.target.value)}>
-                            {JURUSAN_LIST.map(j => <option key={j} value={j}>{j}</option>)}
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">▼</div>
-                    </div>
-                </div>
-            </div>
-          )}
-          
-          {/* Common Fields */}
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">NIM (Nomor Induk Mahasiswa)</label>
-            <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input required type="text" 
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white placeholder-slate-400 uppercase tracking-wider"
-                    value={nim} onChange={(e) => setNim(e.target.value)} placeholder="333..." />
-            </div>
+              {/* Card Toggle List Asisten */}
+              <button 
+                onClick={() => setIsAssistantsOpen(!isAssistantsOpen)}
+                className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl flex items-center justify-between hover:bg-slate-800 hover:border-blue-500/30 transition-all text-left w-full group"
+              >
+                  <div>
+                      <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Tim Laboratorium</p>
+                      <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">
+                          Lihat Daftar Asisten
+                      </h3>
+                  </div>
+                  <div className={`w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-white transition-all duration-300 ${isAssistantsOpen ? 'rotate-180 bg-blue-600 text-white' : ''}`}>
+                      <ChevronDown size={28}/>
+                  </div>
+              </button>
           </div>
 
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Password</label>
-            <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input required type={showPassword ? "text" : "password"} 
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 py-3.5 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all dark:text-white placeholder-slate-400"
-                    value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                    {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-                </button>
-            </div>
+          {/* Collapsible List Asisten */}
+          <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isAssistantsOpen ? 'max-h-[1500px] opacity-100 mb-20' : 'max-h-0 opacity-0'}`}>
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8">
+                  <h3 className="text-white font-bold mb-6 flex items-center gap-2">
+                      <GraduationCap className="text-blue-400"/> Asisten
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {assistants.map((ast) => (
+                          <div key={ast.kode_asisten} className="relative flex items-center gap-3 p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-blue-500/50 transition-all group">
+                              {/* Avatar Kode Asisten */}
+                              <div className="w-12 h-12 rounded-full bg-slate-900 flex items-center justify-center text-sm font-bold text-blue-400 border border-slate-700 shadow-inner shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                  {ast.kode_asisten || 'XX'}
+                              </div>
+                              
+                              {/* Info Nama & Jurusan */}
+                              <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-bold text-slate-200 truncate group-hover:text-white">{ast.nama_lengkap}</p>
+                                  {/* Ganti Role jadi Jurusan */}
+                                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider truncate">
+                                      {ast.jurusan || '--'}
+                                  </p>
+                              </div>
+
+                              {/* Telegram */}
+                              {ast.telegram && (
+                                  <a 
+                                    href={`https://t.me/${ast.telegram}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="p-2 bg-slate-800 rounded-full text-slate-400 hover:bg-blue-500 hover:text-white transition-all absolute right-3"
+                                    title="Hubungi via Telegram"
+                                  >
+                                      <Send size={14} />
+                                  </a>
+                              )}
+                          </div>
+                      ))}
+                  </div>
+              </div>
           </div>
+      </section>
 
-          <button disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-3.5 rounded-full shadow-lg shadow-blue-900/20 transition-all active:scale-95 mt-6 flex justify-center items-center gap-2 text-sm">
-            {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? <><LogIn size={20} /> Masuk</> : <><UserPlus size={20} /> Daftar Akun</>)}
-          </button>
-        </form>
+      {/* FEATURES SECTION */}
+      <section id="fitur" className="py-20 px-6 bg-slate-900/30 border-y border-slate-800">
+        <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Fitur Unggulan</h2>
+                <p className="text-slate-400 max-w-2xl mx-auto">Sistem yang dirancang untuk mendukung kegiatan praktikum secara efisien dan transparan.</p>
+            </div>
 
-        {/* Footer Toggle */}
-        <div className="mt-8 text-center">
-            <p className="text-slate-400 text-sm">
-                {isLogin ? "Belum memiliki akun?" : "Sudah punya akun?"}
-                <button onClick={() => { setIsLogin(!isLogin); setErrorMsg('') }} className="ml-2 font-bold text-blue-600 dark:text-blue-400 hover:underline">
-                    {isLogin ? "Daftar Sekarang" : "Login Disini"}
-                </button>
-            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <FeatureCard 
+                    icon={ClipboardCheck} 
+                    color="blue"
+                    title="Presensi Praktikum" 
+                    desc="Memastikan data kehadiran tercatat rapi sesuai grup dan jadwal."
+                />
+                <FeatureCard 
+                    icon={BarChart2} 
+                    color="cyan"
+                    title="Transparansi Nilai" 
+                    desc="Lihat nilai modul secara real-time setelah periode transparansi dibuka."
+                />
+                <FeatureCard 
+                    icon={FolderOpen} 
+                    color="indigo"
+                    title="Repositori Digital" 
+                    desc="Akses modul, panduan, format laporan, dan lainnya dengan mudah."
+                />
+            </div>
         </div>
-       </div>
-       
-       <p className="mt-8 text-xs text-slate-400 font-medium">© {new Date().getFullYear()} Lab Fister. All rights reserved.</p>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="py-12 text-center border-t border-slate-900 bg-slate-950">
+          <div className="flex items-center justify-center gap-3 mb-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+              <img src="/logo-fister.png" className="w-8 h-8 object-contain" alt="Logo Footer"/>
+              <span className="font-bold text-white">Lab Fister</span>
+          </div>
+          <p className="text-slate-500 text-sm">
+              &copy; {new Date().getFullYear()} Laboratorium Fisika Terapan. <br className="md:hidden"/> Fakultas Teknik UNTIRTA.
+          </p>
+      </footer>
     </div>
   )
+}
+
+// Komponen Kecil Card Fitur
+function FeatureCard({ icon: Icon, title, desc, color }: any) {
+    const colorClasses = {
+        blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+        cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+        indigo: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    }[color as string]
+
+    return (
+        <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 hover:border-slate-600 transition-all group hover:-translate-y-1 duration-300 shadow-lg">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 border ${colorClasses}`}>
+                <Icon size={28} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">{title}</h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+                {desc}
+            </p>
+        </div>
+    )
 }

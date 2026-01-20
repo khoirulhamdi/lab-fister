@@ -3,13 +3,12 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Cookies from 'js-cookie'
 import { useRouter } from 'next/navigation'
-// Import action baru
 import { getAdminData, updateUserRole, resetUserPassword, deleteUser, updateAssistantCode, updateUserGroup, toggleTransparency } from '../actions/adminActions' 
 import { 
   ShieldAlert, Users, Search, KeyRound, Crown, CalendarCheck,
   Trash2, UserCog, LayoutDashboard, LogOut, Download, Briefcase,
   Filter, ArrowUpDown, Tag, CheckCircle, CheckCircle2, AlertCircle,
-  Users2, Eye, EyeOff // Ikon baru
+  Users2, Eye, EyeOff
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -20,16 +19,16 @@ export default function AdminPage() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
-  const [transparency, setTransparency] = useState(false) // State Transparansi
+  const [transparency, setTransparency] = useState(false)
   
   // Filter & Sort State
   const [search, setSearch] = useState('')
   const [filterJurusan, setFilterJurusan] = useState('')
-  const [filterKelompok, setFilterKelompok] = useState('') // Filter Kelompok
+  const [filterKelompok, setFilterKelompok] = useState('')
   const [sortNimAsc, setSortNimAsc] = useState(true) 
   const [activeTab, setActiveTab] = useState<'praktikan' | 'staff'>('praktikan')
   
-  // Modal State (Tambah tipe 'group')
+  // Modal State
   const [modalType, setModalType] = useState<'password' | 'role' | 'code' | 'group' | null>(null)
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [inputVal, setInputVal] = useState('') 
@@ -51,9 +50,9 @@ export default function AdminPage() {
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
-    Cookies.remove('fister-token', { path: '/' }) 
-    Cookies.remove('fister-refresh-token', { path: '/' })
-    window.location.href = '/'
+    Cookies.remove('fister-token', { path: '/login' }) 
+    Cookies.remove('fister-refresh-token', { path: '/login' })
+    window.location.href = '/login'
   }
   
   // List Dropdown
@@ -66,7 +65,7 @@ export default function AdminPage() {
 
   const checkAdminAndFetch = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return router.push('/')
+    if (!user) return router.push('/login')
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     if (profile?.role !== 'admin') {
@@ -80,7 +79,7 @@ export default function AdminPage() {
     const res = await getAdminData()
     if (res.success) {
         setUsers(res.data || [])
-        setTransparency(res.transparency) // Set initial transparency
+        setTransparency(res.transparency ?? false)
     } else {
         showNotification("Gagal memuat data: " + res.error, 'error')
     }
@@ -97,11 +96,11 @@ export default function AdminPage() {
         const matchSearch = u.nama_lengkap?.toLowerCase().includes(search.toLowerCase()) || 
                             u.nim?.includes(search) || 
                             u.kode_asisten?.toLowerCase().includes(search.toLowerCase()) ||
-                            u.kelompok?.toLowerCase().includes(search.toLowerCase()); // Bisa cari kelompok
+                            u.kelompok?.toLowerCase().includes(search.toLowerCase());
         if (!matchSearch) return false;
 
         if (filterJurusan && u.jurusan !== filterJurusan) return false;
-        if (filterKelompok && u.kelompok !== filterKelompok) return false; // Filter Kelompok
+        if (filterKelompok && u.kelompok !== filterKelompok) return false;
 
         return true;
     })
@@ -111,8 +110,7 @@ export default function AdminPage() {
         return sortNimAsc ? nimA.localeCompare(nimB) : nimB.localeCompare(nimA);
     });
 
-  // --- HANDLERS BARU ---
-
+  // --- HANDLERS ---
   const handleToggleTransparency = async () => {
     setProcessing(true)
     const newVal = !transparency
@@ -137,8 +135,6 @@ export default function AdminPage() {
         showNotification(res.message, 'error')
     }
   }
-
-  // --- HANDLERS LAMA ---
 
   const handleResetPassword = async () => {
     if(inputVal.length < 6) return showNotification("Min 6 karakter", 'error')
@@ -273,7 +269,7 @@ export default function AdminPage() {
                   <thead className="text-xs text-slate-500 uppercase bg-slate-950/50 font-bold border-b border-slate-800">
                       <tr>
                           <th className="px-6 md:px-8 py-5">Identitas</th>
-                          {/* KOLOM KELOMPOK (Hanya Praktikan) */}
+                          {/* KOLOM KELOMPOK */}
                           {activeTab === 'praktikan' && <th className="px-6 py-5 text-center">Kelompok</th>}
                           <th className="px-4 md:px-6 py-5 text-center">Status</th>
                           <th className="px-6 py-5 text-center">{activeTab === 'praktikan' ? 'Nilai Akhir' : 'Total Shift'}</th>
@@ -320,7 +316,7 @@ export default function AdminPage() {
 
                               <td className="px-6 md:px-8 py-5">
                                   <div className="flex justify-center gap-2">
-                                      {/* BUTTON EDIT KELOMPOK */}
+                                      {/* EDIT KELOMPOK */}
                                       {activeTab === 'praktikan' && (
                                           <button onClick={() => { setSelectedUser(user); setModalType('group'); setInputVal(user.kelompok || '') }} className="p-2 bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30 border border-transparent rounded-xl transition-all" title="Edit Kelompok"><Users2 size={16}/></button>
                                       )}
@@ -345,7 +341,7 @@ export default function AdminPage() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[99] flex items-center justify-center p-4">
             <div className="bg-slate-900 border border-slate-700 p-8 rounded-3xl w-full max-w-md shadow-2xl animate-fade-in-up">
                 
-                {/* MODAL GROUP (BARU) */}
+                {/* MODAL GROUP */}
                 {modalType === 'group' && (
                     <>
                         <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><Users2 className="text-emerald-400"/> Set Kelompok</h2>
@@ -358,7 +354,6 @@ export default function AdminPage() {
                     </>
                 )}
 
-                {/* MODAL PASSWORD (LAMA) */}
                 {modalType === 'password' && (
                     <>
                         <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><KeyRound className="text-amber-400"/> Reset Password</h2>
@@ -370,7 +365,7 @@ export default function AdminPage() {
                     </>
                 )}
 
-                {/* MODAL CODE (LAMA) */}
+                {/* MODAL CODE */}
                 {modalType === 'code' && (
                     <>
                         <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><Tag className="text-blue-400"/> Kode Asisten</h2>
@@ -382,7 +377,7 @@ export default function AdminPage() {
                     </>
                 )}
 
-                {/* MODAL ROLE (LAMA) */}
+                {/* MODAL ROLE */}
                 {modalType === 'role' && (
                     <>
                         <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2"><UserCog className="text-purple-400"/> Ganti Role</h2>

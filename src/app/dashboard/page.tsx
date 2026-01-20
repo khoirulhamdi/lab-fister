@@ -109,7 +109,7 @@ export default function Dashboard() {
         if (isFirstLoad) setInitialLoading(true)
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return router.push('/')
+        if (authError || !user) return router.push('/login')
 
         const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single()
         if (!profileData) throw new Error("Gagal mengambil profil.")
@@ -172,9 +172,9 @@ export default function Dashboard() {
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
-    Cookies.remove('fister-token', { path: '/' }) 
-    Cookies.remove('fister-refresh-token', { path: '/' })
-    window.location.href = '/'
+    Cookies.remove('fister-token', { path: '/login' }) 
+    Cookies.remove('fister-refresh-token', { path: '/login' })
+    window.location.href = '/login'
   }
   
   const handleAbsenPraktikan = async (e: React.FormEvent) => {
