@@ -13,10 +13,8 @@ const supabaseAdmin = createClient(
   }
 )
 
-// --- FETCH DATA ---
 export async function getAdminData() {
   try {
-    // 1. Ambil Data User
     const { data: users, error } = await supabaseAdmin
       .from('profiles')
       .select(`
@@ -35,7 +33,6 @@ export async function getAdminData() {
       return { success: false, error: error.message }
     }
 
-    // 2. Ambil Setting Transparansi
     const { data: setting } = await supabaseAdmin
       .from('app_settings')
       .select('value')
@@ -46,19 +43,15 @@ export async function getAdminData() {
 
     const formattedUsers = users.map((u: any) => {
       const sessions = u.practicum_sessions || [];
-      
       const praktikumModules = sessions.filter((s: any) => {
         const status = s.status ? s.status.toLowerCase() : '';
         return s.modul !== 'Sosialisasi' && (status === 'graded' || status === 'selesai');
       });
-      
       const totalScore = praktikumModules.reduce((acc: number, curr: any) => acc + (Number(curr.nilai_akhir) || 0), 0);
-      
       const hasBonus = sessions.some((s: any) => {
         const status = s.status ? s.status.toLowerCase() : '';
         return s.modul === 'Sosialisasi' && (status === 'graded' || status === 'selesai');
       });
-      
       let finalScore = (totalScore / 7) + (hasBonus ? 10 : 0);
       if (finalScore > 100) finalScore = 100;
 
@@ -79,12 +72,12 @@ export async function getAdminData() {
 }
 
 // --- UPDATE ACTIONS ---
+
 export async function updateUserGroup(userId: string, newGroup: string) {
   const { error } = await supabaseAdmin
     .from('profiles')
-    .update({ kelompok: newGroup.toUpperCase() }) // Force Uppercase (e.g. a1-1 -> A1-1)
+    .update({ kelompok: newGroup.toUpperCase() })
     .eq('id', userId)
-
   if (error) return { success: false, message: error.message }
   return { success: true, message: 'Kelompok berhasil diupdate.' }
 }
@@ -94,7 +87,6 @@ export async function toggleTransparency(newValue: boolean) {
     .from('app_settings')
     .update({ value: String(newValue) })
     .eq('key', 'grade_transparency')
-  
   if (error) return { success: false, message: error.message }
   return { success: true, message: `Transparansi Nilai: ${newValue ? 'ON' : 'OFF'}` }
 }
@@ -104,9 +96,18 @@ export async function updateAssistantCode(userId: string, newCode: string) {
     .from('profiles')
     .update({ kode_asisten: newCode.toUpperCase() })
     .eq('id', userId)
-
   if (error) return { success: false, message: error.message }
   return { success: true, message: `Kode Asisten berhasil diubah.` }
+}
+
+export async function updateTelegram(userId: string, newTelegram: string) {
+    const cleanTelegram = newTelegram.replace('@', '').trim()
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ telegram: cleanTelegram })
+      .eq('id', userId)
+    if (error) return { success: false, message: error.message }
+    return { success: true, message: `Telegram berhasil diubah.` }
 }
 
 export async function updateUserRole(userId: string, newRole: string) {
@@ -121,15 +122,12 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   return { success: true, message: 'Password berhasil direset!' }
 }
 
-// --- DELETE USER ---
 export async function deleteUser(userId: string) {
   try {
     const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', userId)
     if (profileError) console.error("Gagal hapus profil:", profileError)
-
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (authError) return { success: false, message: authError.message }
-
     return { success: true, message: 'User berhasil dihapus permanen.' }
   } catch (err: any) {
     return { success: false, message: err.message }
